@@ -15,9 +15,8 @@ from typing import Optional, Dict, Any, List
 from collections import deque
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
-from fastapi.responses import Response, FileResponse
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from faster_whisper import WhisperModel
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -601,20 +600,6 @@ async def export_pdf(req: PDFExportRequest):
         logger.error(f"PDF Export failed: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
-# --- STATIC FILES (Unified Deployment) ---
-# Mount the built frontend assets
-static_path = os.path.join(os.path.dirname(__file__), "static")
-if os.path.exists(static_path):
-    app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
-
-# Catch-all route to serve index.html for React Router
-@app.get("/{full_path:path}")
-async def catch_all(full_path: str):
-    index_path = os.path.join(static_path, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"detail": "Not Found"}
 
 if __name__ == "__main__":
     import uvicorn

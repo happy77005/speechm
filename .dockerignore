@@ -1,20 +1,21 @@
-# Ignore Python artifacts
+# Ignore everything first
+**
+
+# Allow backend and necessary root files
+!backend/
+!backend/requirements.txt
+!backend/app.py
+!Dockerfile
+!README.md
+!.dockerignore
+!.gitignore
+
+# Re-ignore unwanted files within allowed folders
 **/__pycache__/
 *.py[cod]
 *$py.class
 venv/
 .env
-
-# Ignore Node.js artifacts
-**/node_modules/
-**/dist/
-.npm
-.eslintcache
-
-# Ignore Git
+node_modules/
+dist/
 .git/
-.gitignore
-
-# Ignore other OS files
-.DS_Store
-Thumbs.db

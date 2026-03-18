@@ -1,12 +1,3 @@
-# --- Stage 1: Build Frontend ---
-FROM node:20-slim AS build-stage
-WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm install
-COPY frontend/ ./
-RUN npm run build
-
-# --- Stage 2: Final Backend ---
 FROM python:3.10-slim
 
 # Install system dependencies
@@ -44,9 +35,6 @@ RUN mkdir -p fonts && \
 # Copy backend requirements and install
 COPY --chown=user backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
-
-# Copy the built frontend from Stage 1 to the 'static' folder
-COPY --from=build-stage --chown=user /frontend/dist ./static
 
 # Copy the backend code
 COPY --chown=user backend/app.py .
