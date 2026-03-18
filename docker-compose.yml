@@ -1,0 +1,19 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - hf_cache:/root/.cache/huggingface
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  # Frontend could be added here if needed, but the user specifically asked for backend
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:5173"
+
+volumes:
+  hf_cache:

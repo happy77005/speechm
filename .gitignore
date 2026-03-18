@@ -1,0 +1,25 @@
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.pytest_cache/
+
+# Node
+**/node_modules/
+**/dist/
+.npm
+.eslintcache
+
+# Project specific
+backend/venv/
+frontend/node_modules/
+frontend/dist/
+
+# Git
+.git/
+
+# OS
+.DS_Store
+Thumbs.db
