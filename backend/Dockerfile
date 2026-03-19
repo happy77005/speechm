@@ -40,8 +40,8 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 # Copy the backend code
 COPY --chown=user app.py .
 
-# Expose the port used for local dev and deployment
-EXPOSE 8000
+# Expose the port used by Hugging Face Spaces
+EXPOSE 7860
 
 # Command to run the application
 CMD ["python", "app.py"]

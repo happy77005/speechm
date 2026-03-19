@@ -2,7 +2,7 @@ services:
   backend:
     build: .
     ports:
-      - "8000:8000"
+      - "7860:7860"
     volumes:
       - hf_cache:/root/.cache/huggingface
     environment:

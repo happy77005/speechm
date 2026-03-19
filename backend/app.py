@@ -44,8 +44,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"status": "running", "service": "Transpeech API", "version": "1.0.0"}
+
 # --- WHISPER CONFIGURATION ---
-WHISPER_MODEL_SIZE = "base" 
+WHISPER_MODEL_SIZE = "small" 
 whisper_model = None
 
 def load_whisper_model():
@@ -107,6 +111,7 @@ class TranscriptionResponse(BaseModel):
     language: str
     confidence: Optional[float] = None
     duration: Optional[float] = None
+    seq_id: Optional[int] = None
 
 class PDFExportRequest(BaseModel):
     original_text: str
@@ -223,7 +228,8 @@ async def health_check():
 async def transcribe_audio(
     file: UploadFile = File(...),
     language: Optional[str] = Form(None),
-    initial_prompt: Optional[str] = Form(None)
+    initial_prompt: Optional[str] = Form(None),
+    seq_id: Optional[int] = Form(None)
 ):
     temp_path = None
     try:
@@ -252,7 +258,8 @@ async def transcribe_audio(
             text=full_text,
             language=info.language,
             confidence=info.language_probability,
-            duration=info.duration
+            duration=info.duration,
+            seq_id=seq_id
         )
 
     except Exception as e:
