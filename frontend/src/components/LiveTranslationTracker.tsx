@@ -7,7 +7,9 @@ import {
     Trash2,
     CheckCircle2,
     Activity,
-    ArrowRight
+    ArrowRight,
+    Play,
+    Square
 } from 'lucide-react';
 import { useLiveTranscription } from '../hooks/useLiveTranscription';
 import { useWebSpeech } from '../hooks/useWebSpeech';
@@ -27,7 +29,11 @@ const SUPPORTED_LANGS = [
     { code: 'de', label: 'German', nllb: 'deu_Latn', bcp47: 'de-DE' },
 ];
 
+import { useServerStatus } from '../hooks/useServerStatus';
+
 export function LiveTranslationTracker() {
+    const { status: serverStatus } = useServerStatus();
+    const [isTracking, setIsTracking] = useState(false);
     const [sttEngine, setSttEngine] = useState<STTEngine>('whisper');
     const [translationEngine, setTranslationEngine] = useState<TranslationEngine>('nllb');
     const [sourceLang, setSourceLang] = useState('te');
@@ -274,24 +280,33 @@ export function LiveTranslationTracker() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={toggleRecording}
+                            disabled={serverStatus !== 'ready' && !isRecording}
                             className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all shadow-2xl hover:scale-[1.02] active:scale-95 ${
                                 isRecording 
                                 ? 'bg-rose-500 text-white shadow-rose-200 dark:shadow-rose-900/20' 
-                                : 'bg-blue-600 text-white shadow-blue-200 dark:shadow-blue-900/20'
+                                : serverStatus === 'ready'
+                                    ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-blue-900/20'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                         >
                             {isRecording ? (
                                 <>
-                                    <div className="w-2.5 h-2.5 bg-white rounded-[2px] animate-pulse" />
+                                    <Square className="w-5 h-5 fill-current" />
                                     Stop Session
                                 </>
                             ) : (
                                 <>
-                                    <Mic2 size={20} />
-                                    Start Session
+                                    <Play className="w-5 h-5 fill-current" />
+                                    {serverStatus === 'warming-up' ? 'Warming up...' : 'Start Session'}
                                 </>
                             )}
                         </button>
+
+                        {serverStatus !== 'ready' && !isRecording && (
+                            <p className="text-[10px] font-black uppercase tracking-tighter text-amber-600 animate-pulse">
+                                {serverStatus === 'offline' ? 'Server offline' : 'AI models loading (2-3 min)...'}
+                            </p>
+                        )}
                         
                         <button
                             onClick={clearAll}

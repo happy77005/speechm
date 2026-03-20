@@ -15,7 +15,11 @@ const SUPPORTED_LANGS = [
   { code: 'de', label: 'German' }
 ];
 
-export function LiveSpeechTracker() {
+import { useServerStatus } from '../hooks/useServerStatus';
+import { Play, Square } from 'lucide-react';
+
+export default function LiveSpeechTracker() {
+  const { status: serverStatus } = useServerStatus();
   const [sourceLang, setSourceLang] = useState('te');
   const [engine, setEngine] = useState<'whisper' | 'webspeech'>('whisper');
   
@@ -114,17 +118,29 @@ export function LiveSpeechTracker() {
             </div>
 
             {/* Action Button */}
-            <button 
-              onClick={handleToggle}
-              className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500 transform active:scale-95 shadow-lg ${
-                isRecording 
-                ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25' 
-                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/25'
-              }`}
-            >
-              {isRecording ? 'Stop Tracking' : 'Start Tracking'}
-            </button>
-
+            <button
+            onClick={handleToggle}
+            disabled={serverStatus !== 'ready' && !isRecording}
+            className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all shadow-2xl hover:scale-[1.02] active:scale-95 ${
+              isRecording 
+              ? 'bg-rose-500 text-white shadow-rose-200 dark:shadow-rose-900/20' 
+              : serverStatus === 'ready'
+                ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-blue-900/20'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {isRecording ? (
+              <>
+                <Square className="w-5 h-5 fill-current" />
+                Stop Session
+              </>
+            ) : (
+              <>
+                <Mic size={20} className={serverStatus === 'ready' ? 'text-white' : 'text-gray-400'} />
+                {serverStatus === 'warming-up' ? 'Warming up...' : 'Start Session'}
+              </>
+            )}
+          </button>
             {/* Engine Selector */}
             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
                <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Engine Selection</p>

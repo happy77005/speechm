@@ -296,17 +296,20 @@ threading.Thread(target=nllb_cleanup_loop, daemon=True).start()
 
 @app.get("/health")
 async def health_check():
+    whisper_ready = whisper_model is not None
+    trans_ready = TRANS_STATUS == "ready"
+    
     return {
         "status": "healthy",
+        "is_ready": whisper_ready and trans_ready,
         "whisper": {
             "model": WHISPER_MODEL_SIZE,
-            "loaded": whisper_model is not None
+            "loaded": whisper_ready
         },
-        "nllb": {
+        "translation": {
             "status": TRANS_STATUS,
-            "queue_length": len(NLLB_QUEUE),
-            "worker_busy": NLLB_WORKER_BUSY,
-            "last_error": TRANS_LAST_ERROR
+            "last_error": TRANS_LAST_ERROR,
+            "is_ready": trans_ready
         }
     }
 
