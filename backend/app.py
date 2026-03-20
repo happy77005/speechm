@@ -1,4 +1,5 @@
 import os
+os.environ["OMP_NUM_THREADS"] = "4"
 import asyncio
 import logging
 import tempfile
@@ -51,7 +52,8 @@ def read_root():
     return {"status": "running", "service": "Transpeech API", "version": "1.0.0"}
 
 # --- WHISPER CONFIGURATION ---
-WHISPER_MODEL_SIZE = "Systran/faster-whisper-large-v3-turbo" 
+# faster-whisper will automatically download the correct CT2-converted model
+WHISPER_MODEL_SIZE = "large-v3-turbo" 
 whisper_model = None
 
 def load_whisper_model():
@@ -118,15 +120,15 @@ def load_translation_models():
             indic_en_snap = snapshot_download(INDIC_EN_CT2_PATH)
             indic_en_dir = find_model_dir(indic_en_snap)
             indic_en_translator = ctranslate2.Translator(indic_en_dir, device=device, compute_type=compute_type)
-            # Load tokenizer from the snapshot directory to avoid gated repo access
-            indic_en_tokenizer = AutoTokenizer.from_pretrained(indic_en_dir, trust_remote_code=True)
+            # Use the snapshot root for the tokenizer (where config.json lives)
+            indic_en_tokenizer = AutoTokenizer.from_pretrained(indic_en_snap, trust_remote_code=True)
             
             logger.info(f"Downloading {EN_INDIC_CT2_PATH}...")
             en_indic_snap = snapshot_download(EN_INDIC_CT2_PATH)
             en_indic_dir = find_model_dir(en_indic_snap)
             en_indic_translator = ctranslate2.Translator(en_indic_dir, device=device, compute_type=compute_type)
-            # Load tokenizer from the snapshot directory to avoid gated repo access
-            en_indic_tokenizer = AutoTokenizer.from_pretrained(en_indic_dir, trust_remote_code=True)
+            # Use the snapshot root for the tokenizer (where config.json lives)
+            en_indic_tokenizer = AutoTokenizer.from_pretrained(en_indic_snap, trust_remote_code=True)
             logger.info("IndicTrans2 models loaded successfully")
         except Exception as indic_e:
             logger.warning(f"IndicTrans2 load failed (falling back to NLLB for all): {indic_e}")
