@@ -36,9 +36,7 @@ const INITIAL_PROMPTS: { [key: string]: string } = {
     "en": "Hello, this is English speech."
 };
 
-const USE_LOCAL_BACKEND = false; // Set to true for local testing, false for production (using HF Space)
-
-const BASE_URL = USE_LOCAL_BACKEND ? "http://localhost:8000" : "https://hari7775-transpeech.hf.space";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7860";
 const WHISPER_API_URL = BASE_URL;
 const NLLB_API_URL = BASE_URL;
 

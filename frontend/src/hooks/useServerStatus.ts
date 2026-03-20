@@ -9,7 +9,7 @@ export interface HealthResponse {
   translation: { is_ready: boolean; status: string };
 }
 
-export function useServerStatus(apiUrl: string = 'http://localhost:7860') {
+export function useServerStatus(apiUrl: string = import.meta.env.VITE_API_URL || 'http://localhost:7860') {
   const [status, setStatus] = useState<ServerStatus>('initializing');
   const [details, setDetails] = useState<HealthResponse | null>(null);
 
