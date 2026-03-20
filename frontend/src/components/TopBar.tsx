@@ -48,7 +48,7 @@ export function TopBar({ currentView, onViewChange, isDarkMode, toggleDarkMode }
                             }`}
                     >
                         <Sparkles size={14} />
-                        Live
+                        Live Speech
                     </button>
                     <button
                         onClick={() => onViewChange('history')}
