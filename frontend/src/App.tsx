@@ -4,7 +4,6 @@ import { DictationRecorder } from './components/DictationRecorder';
 import { SavedTranscriptions } from './components/SavedTranscriptions';
 import { LiveSpeechTracker } from './components/LiveSpeechTracker';
 import { LiveTranslationTracker } from './components/LiveTranslationTracker';
-import { ServerStatusBanner } from './components/ServerStatusBanner';
 
 export default function App() {
   const [view, setView] = useState<'dictation' | 'live' | 'live-translation' | 'history'>('dictation');
@@ -25,7 +24,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors duration-300">
-      <ServerStatusBanner />
       <TopBar
         currentView={view}
         onViewChange={setView}

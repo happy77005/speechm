@@ -15,11 +15,9 @@ const SUPPORTED_LANGS = [
   { code: 'de', label: 'German' }
 ];
 
-import { useServerStatus } from '../hooks/useServerStatus';
-import { Play, Square } from 'lucide-react';
+import { Square } from 'lucide-react';
 
 export function LiveSpeechTracker() {
-  const { status: serverStatus } = useServerStatus();
   const [sourceLang, setSourceLang] = useState('te');
   const [engine, setEngine] = useState<'whisper' | 'webspeech'>('whisper');
   
@@ -120,13 +118,10 @@ export function LiveSpeechTracker() {
             {/* Action Button */}
             <button
             onClick={handleToggle}
-            disabled={serverStatus !== 'ready' && !isRecording}
             className={`flex items-center gap-3 px-10 py-5 rounded-2xl font-black text-sm tracking-widest uppercase transition-all shadow-2xl hover:scale-[1.02] active:scale-95 ${
               isRecording 
               ? 'bg-rose-500 text-white shadow-rose-200 dark:shadow-rose-900/20' 
-              : serverStatus === 'ready'
-                ? 'bg-blue-600 text-white shadow-blue-200 dark:shadow-blue-900/20'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white shadow-blue-200 dark:shadow-blue-900/20'
             }`}
           >
             {isRecording ? (
@@ -136,8 +131,8 @@ export function LiveSpeechTracker() {
               </>
             ) : (
               <>
-                <Mic size={20} className={serverStatus === 'ready' ? 'text-white' : 'text-gray-400'} />
-                {serverStatus === 'warming-up' ? 'Warming up...' : 'Start Session'}
+                <Mic size={20} className="text-white" />
+                Start Session
               </>
             )}
           </button>
