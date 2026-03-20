@@ -18,7 +18,7 @@ const SUPPORTED_LANGS = [
 import { useServerStatus } from '../hooks/useServerStatus';
 import { Play, Square } from 'lucide-react';
 
-export default function LiveSpeechTracker() {
+export function LiveSpeechTracker() {
   const { status: serverStatus } = useServerStatus();
   const [sourceLang, setSourceLang] = useState('te');
   const [engine, setEngine] = useState<'whisper' | 'webspeech'>('whisper');
