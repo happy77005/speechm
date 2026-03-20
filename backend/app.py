@@ -49,7 +49,7 @@ def read_root():
     return {"status": "running", "service": "Transpeech API", "version": "1.0.0"}
 
 # --- WHISPER CONFIGURATION ---
-WHISPER_MODEL_SIZE = "large-v3" 
+WHISPER_MODEL_SIZE = "openai/whisper-large-v3-turbo" 
 whisper_model = None
 
 def load_whisper_model():
@@ -277,7 +277,8 @@ async def transcribe_audio(
             language=language if language else None,
             initial_prompt=effective_prompt,
             vad_filter=True,        
-            repetition_penalty=1.3, # Increased to stop loops
+            vad_parameters=dict(min_silence_duration_ms=1000, speech_pad_ms=400), # Stricter VAD
+            repetition_penalty=1.3,
             condition_on_previous_text=False,
             beam_size=5,
             no_speech_threshold=0.6,
