@@ -78,10 +78,9 @@ def load_whisper_model():
     return whisper_model
 
 # --- TRANSLATION MODELS CONFIGURATION ---
-# We use CTranslate2 for high-speed inference on Nvidia small compute.
-NLLB_CT2_PATH = "ct2fast/nllb-200-distilled-600M"
-INDIC_EN_CT2_PATH = "michaelf94/indictrans2-indic-en-dist-200M-ct2-float16"
-EN_INDIC_CT2_PATH = "michaelf94/indictrans2-en-indic-dist-200M-ct2-float16"
+NLLB_CT2_PATH = "JustFrederik/nllb-200-distilled-600M-ct2"
+INDIC_EN_CT2_PATH = "adalat-ai/ct2-rotary-indictrans2-indic-en-dist-200M"
+EN_INDIC_CT2_PATH = "adalat-ai/ct2-rotary-indictrans2-en-indic-dist-200M"
 
 nllb_translator = None
 nllb_tokenizer = None
@@ -93,28 +92,36 @@ en_indic_tokenizer = None
 TRANS_STATUS = "loading" # loading, ready, error
 TRANS_LAST_ERROR = None
 
+def find_model_dir(base_path):
+    """Recursively finds the directory containing model.bin"""
+    for root, dirs, files in os.walk(base_path):
+        if "model.bin" in files:
+            return root
+    return base_path
+
 def load_translation_models():
     global nllb_translator, nllb_tokenizer, indic_en_translator, indic_en_tokenizer, en_indic_translator, en_indic_tokenizer, TRANS_STATUS, TRANS_LAST_ERROR
     logger.info("Starting optimized translation models load...")
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
+        # Use int8 for CPU to avoid library errors and speed up
+        compute_type = "default" if device == "cuda" else "int8"
         
-        # Pre-download models to local directories for CTranslate2
-        logger.info("Downloading NLLB-CT2 model...")
-        nllb_path = snapshot_download(NLLB_CT2_PATH)
-        nllb_translator = ctranslate2.Translator(nllb_path, device=device)
+        # Pre-download models
+        logger.info(f"Downloading {NLLB_CT2_PATH}...")
+        nllb_snap = snapshot_download(NLLB_CT2_PATH)
+        nllb_translator = ctranslate2.Translator(find_model_dir(nllb_snap), device=device, compute_type=compute_type)
         nllb_tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
         
-        # Load IndicTrans2 for Indian languages
         try:
-            logger.info("Downloading IndicTrans2-EN models...")
-            indic_en_path = snapshot_download(INDIC_EN_CT2_PATH)
-            indic_en_translator = ctranslate2.Translator(indic_en_path, device=device)
+            logger.info(f"Downloading {INDIC_EN_CT2_PATH}...")
+            indic_en_snap = snapshot_download(INDIC_EN_CT2_PATH)
+            indic_en_translator = ctranslate2.Translator(find_model_dir(indic_en_snap), device=device, compute_type=compute_type)
             indic_en_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-indic-en-dist-200M", trust_remote_code=True)
             
-            logger.info("Downloading EN-IndicTrans2 models...")
-            en_indic_path = snapshot_download(EN_INDIC_CT2_PATH)
-            en_indic_translator = ctranslate2.Translator(en_indic_path, device=device)
+            logger.info(f"Downloading {EN_INDIC_CT2_PATH}...")
+            en_indic_snap = snapshot_download(EN_INDIC_CT2_PATH)
+            en_indic_translator = ctranslate2.Translator(find_model_dir(en_indic_snap), device=device, compute_type=compute_type)
             en_indic_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-en-indic-dist-200M", trust_remote_code=True)
             logger.info("IndicTrans2 models loaded successfully")
         except Exception as indic_e:
