@@ -24,6 +24,7 @@ import torch
 import azure.cognitiveservices.speech as speechsdk
 from sarvamai import AsyncSarvamAI
 from fpdf import FPDF
+import ctranslate2
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO)
@@ -75,29 +76,51 @@ def load_whisper_model():
              raise e
     return whisper_model
 
-# --- NLLB CONFIGURATION ---
-NLLB_MODEL_NAME = "facebook/nllb-200-distilled-600M"
-nllb_tokenizer = None
-nllb_model = None
-NLLB_STATUS = "loading" # loading, ready, error
-NLLB_LAST_ERROR = None
+# --- TRANSLATION MODELS CONFIGURATION ---
+# We use CTranslate2 for high-speed inference on Nvidia small compute.
+NLLB_CT2_PATH = "ct2fast/nllb-200-distilled-600M"
+INDIC_EN_CT2_PATH = "michaelf94/indictrans2-indic-en-dist-200M-ct2-float16"
+EN_INDIC_CT2_PATH = "michaelf94/indictrans2-en-indic-dist-200M-ct2-float16"
 
-def load_nllb_model_background():
-    global nllb_tokenizer, nllb_model, NLLB_STATUS, NLLB_LAST_ERROR
-    logger.info(f"Starting NLLB model load: {NLLB_MODEL_NAME}")
+nllb_translator = None
+nllb_tokenizer = None
+indic_en_translator = None
+indic_en_tokenizer = None
+en_indic_translator = None
+en_indic_tokenizer = None
+
+TRANS_STATUS = "loading" # loading, ready, error
+TRANS_LAST_ERROR = None
+
+def load_translation_models():
+    global nllb_translator, nllb_tokenizer, indic_en_translator, indic_en_tokenizer, en_indic_translator, en_indic_tokenizer, TRANS_STATUS, TRANS_LAST_ERROR
+    logger.info("Starting optimized translation models load...")
     try:
-        nllb_tokenizer = AutoTokenizer.from_pretrained(NLLB_MODEL_NAME)
-        nllb_model = AutoModelForSeq2SeqLM.from_pretrained(NLLB_MODEL_NAME)
-        nllb_model.eval()
-        NLLB_STATUS = "ready"
-        logger.info("NLLB model loaded successfully")
+        # Load NLLB-CT2 for global languages
+        nllb_translator = ctranslate2.Translator(NLLB_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+        nllb_tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
+        
+        # Load IndicTrans2 for Indian languages
+        # Note: We use the distributed (dist) versions for efficiency on small compute
+        try:
+            indic_en_translator = ctranslate2.Translator(INDIC_EN_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+            indic_en_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-indic-en-dist-200M", trust_remote_code=True)
+            
+            en_indic_translator = ctranslate2.Translator(EN_INDIC_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+            en_indic_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-en-indic-dist-200M", trust_remote_code=True)
+            logger.info("IndicTrans2 models loaded successfully")
+        except Exception as indic_e:
+            logger.warning(f"IndicTrans2 load failed (falling back to NLLB for all): {indic_e}")
+        
+        TRANS_STATUS = "ready"
+        logger.info("Translation engine ready")
     except Exception as e:
-        NLLB_STATUS = f"error: {str(e)}"
-        NLLB_LAST_ERROR = str(e)
-        logger.error(f"Failed to load NLLB model: {e}")
+        TRANS_STATUS = f"error: {str(e)}"
+        TRANS_LAST_ERROR = str(e)
+        logger.error(f"Failed to load translation models: {e}")
 
 # Start models loading in background
-threading.Thread(target=load_nllb_model_background, daemon=True).start()
+threading.Thread(target=load_translation_models, daemon=True).start()
 threading.Thread(target=load_whisper_model, daemon=True).start()
 
 # --- NLLB JOB QUEUE ---
@@ -154,29 +177,68 @@ def validate_audio_file(file: UploadFile) -> None:
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Invalid file format")
 
-# --- NLLB WORKER ---
-def run_nllb_translation(text, src_lang, tgt_lang):
-    if NLLB_STATUS != "ready":
-        raise Exception(f"NLLB Model not ready (status: {NLLB_STATUS})")
-        
-    nllb_tokenizer.src_lang = src_lang
-    inputs = nllb_tokenizer(text, return_tensors="pt", truncation=True)
+# --- HYBRID TRANSLATION WORKER ---
+INDIC_LANGS = {"te", "hi", "ta", "kn", "ml"}
 
-    with torch.no_grad():
-        outputs = nllb_model.generate(
-            **inputs,
-            forced_bos_token_id=nllb_tokenizer.lang_code_to_id[tgt_lang],
-            max_length=512
-        )
+def run_hybrid_translation(text, src_lang, tgt_lang):
+    if TRANS_STATUS != "ready":
+        raise Exception(f"Translation Engine not ready (status: {TRANS_STATUS})")
 
-    return nllb_tokenizer.decode(outputs[0], skip_special_tokens=True)
+    # Smart Routing logic
+    # Use IndicTrans2 if one of the languages is in the Indian list and the other is English
+    if (src_lang in INDIC_LANGS and tgt_lang == "en") and indic_en_translator:
+        return translate_indic_en(text, src_lang)
+    elif (src_lang == "en" and tgt_lang in INDIC_LANGS) and en_indic_translator:
+        return translate_en_indic(text, tgt_lang)
+    else:
+        # Fallback to NLLB-CT2 for everything else (German, Japanese, Mandarin, etc.)
+        return translate_nllb_ct2(text, src_lang, tgt_lang)
+
+def translate_nllb_ct2(text, src_lang, tgt_lang):
+    # Map to NLLB codes if short codes provided
+    lang_map = {
+        "te": "tel_Telu", "hi": "hin_Deva", "ta": "tam_Taml", 
+        "kn": "kan_Knda", "ml": "mal_Mlym", "en": "eng_Latn",
+        "de": "deu_Latn", "ja": "jpn_Jpan", "zh": "zho_Hans"
+    }
+    src_nllb = lang_map.get(src_lang, src_lang)
+    tgt_nllb = lang_map.get(tgt_lang, tgt_lang)
+
+    nllb_tokenizer.src_lang = src_nllb
+    source = nllb_tokenizer.convert_ids_to_tokens(nllb_tokenizer.encode(text))
+    results = nllb_translator.translate_batch([source], target_prefix=[[tgt_nllb]])
+    
+    target = results[0].hypotheses[0][1:] # Skip prefix
+    return nllb_tokenizer.decode(nllb_tokenizer.convert_tokens_to_ids(target))
+
+def translate_indic_en(text, src_lang):
+    # IndicTrans2 mapping
+    lang_map = {"te": "tel_Telu", "hi": "hin_Deva", "ta": "tam_Taml", "kn": "kan_Knda", "ml": "mal_Mlym"}
+    src_indic = lang_map.get(src_lang, src_lang)
+    
+    source = indic_en_tokenizer.convert_ids_to_tokens(indic_en_tokenizer.encode(f"{src_indic}: {text}"))
+    results = indic_en_translator.translate_batch([source])
+    
+    target = results[0].hypotheses[0]
+    return indic_en_tokenizer.decode(indic_en_tokenizer.convert_tokens_to_ids(target))
+
+def translate_en_indic(text, tgt_lang):
+    # IndicTrans2 mapping
+    lang_map = {"te": "tel_Telu", "hi": "hin_Deva", "ta": "tam_Taml", "kn": "kan_Knda", "ml": "mal_Mlym"}
+    tgt_indic = lang_map.get(tgt_lang, tgt_lang)
+    
+    source = en_indic_tokenizer.convert_ids_to_tokens(en_indic_tokenizer.encode(f"eng_Latn: {text}"))
+    results = en_indic_translator.translate_batch([source], target_prefix=[[tgt_indic]])
+    
+    target = results[0].hypotheses[0][1:] # Skip prefix
+    return en_indic_tokenizer.decode(en_indic_tokenizer.convert_tokens_to_ids(target))
 
 def nllb_worker_loop():
     global NLLB_WORKER_BUSY
     while True:
         try:
             if not NLLB_WORKER_BUSY and NLLB_QUEUE:
-                if NLLB_STATUS != "ready":
+                if TRANS_STATUS != "ready":
                     time.sleep(1)
                     continue
 
@@ -186,7 +248,7 @@ def nllb_worker_loop():
                 
                 try:
                     job = NLLB_JOBS[job_id]
-                    NLLB_JOBS[job_id]["result"] = run_nllb_translation(
+                    NLLB_JOBS[job_id]["result"] = run_hybrid_translation(
                         job["text"], job["src_lang"], job["tgt_lang"]
                     )
                     NLLB_JOBS[job_id]["status"] = "done"
@@ -226,10 +288,10 @@ async def health_check():
             "loaded": whisper_model is not None
         },
         "nllb": {
-            "status": NLLB_STATUS,
+            "status": TRANS_STATUS,
             "queue_length": len(NLLB_QUEUE),
             "worker_busy": NLLB_WORKER_BUSY,
-            "last_error": NLLB_LAST_ERROR
+            "last_error": TRANS_LAST_ERROR
         }
     }
 
@@ -574,6 +636,10 @@ def get_font_for_lang(lang_code: str):
         "kn_Knda": "NotoSansKannada-Regular.ttf",
         "mal_Mlym": "NotoSansMalayalam-Regular.ttf",
         "ml_Mlym": "NotoSansMalayalam-Regular.ttf",
+        "zho_Hans": "NotoSansSC-Regular.ttf",
+        "zh": "NotoSansSC-Regular.ttf",
+        "jpn_Jpan": "NotoSansJP-Regular.ttf",
+        "ja": "NotoSansJP-Regular.ttf",
         "en": "NotoSans-Regular.ttf",
         "eng_Latn": "NotoSans-Regular.ttf"
     }

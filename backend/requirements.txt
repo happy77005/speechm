@@ -17,3 +17,6 @@ fpdf2[full]
 uharfbuzz
 onnxruntime-gpu
 silero-vad
+sentencepiece
+sacremoses
+ctranslate2>=4.0.0

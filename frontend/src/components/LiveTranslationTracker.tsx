@@ -4,8 +4,7 @@ import {
     Languages, 
     Zap, 
     Globe, 
-    Trash2, 
-    Settings2,
+    Trash2,
     CheckCircle2,
     Activity,
     ArrowRight
@@ -23,6 +22,9 @@ const SUPPORTED_LANGS = [
     { code: 'kn', label: 'Kannada', nllb: 'kan_Knda', bcp47: 'kn-IN' },
     { code: 'ml', label: 'Malayalam', nllb: 'mal_Mlym', bcp47: 'ml-IN' },
     { code: 'en', label: 'English', nllb: 'eng_Latn', bcp47: 'en-US' },
+    { code: 'zh', label: 'Mandarin', nllb: 'zho_Hans', bcp47: 'zh-CN' },
+    { code: 'ja', label: 'Japanese', nllb: 'jpn_Jpan', bcp47: 'ja-JP' },
+    { code: 'de', label: 'German', nllb: 'deu_Latn', bcp47: 'de-DE' },
 ];
 
 export function LiveTranslationTracker() {

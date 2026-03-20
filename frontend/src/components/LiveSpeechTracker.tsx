@@ -9,7 +9,10 @@ const SUPPORTED_LANGS = [
   { code: 'hi', label: 'Hindi' },
   { code: 'ta', label: 'Tamil' },
   { code: 'kn', label: 'Kannada' },
-  { code: 'ml', label: 'Malayalam' }
+  { code: 'ml', label: 'Malayalam' },
+  { code: 'zh', label: 'Mandarin' },
+  { code: 'ja', label: 'Japanese' },
+  { code: 'de', label: 'German' }
 ];
 
 export function LiveSpeechTracker() {
