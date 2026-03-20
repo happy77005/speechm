@@ -25,6 +25,7 @@ import azure.cognitiveservices.speech as speechsdk
 from sarvamai import AsyncSarvamAI
 from fpdf import FPDF
 import ctranslate2
+from huggingface_hub import snapshot_download
 
 # --- LOGGING SETUP ---
 logging.basicConfig(level=logging.INFO)
@@ -96,17 +97,24 @@ def load_translation_models():
     global nllb_translator, nllb_tokenizer, indic_en_translator, indic_en_tokenizer, en_indic_translator, en_indic_tokenizer, TRANS_STATUS, TRANS_LAST_ERROR
     logger.info("Starting optimized translation models load...")
     try:
-        # Load NLLB-CT2 for global languages
-        nllb_translator = ctranslate2.Translator(NLLB_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        # Pre-download models to local directories for CTranslate2
+        logger.info("Downloading NLLB-CT2 model...")
+        nllb_path = snapshot_download(NLLB_CT2_PATH)
+        nllb_translator = ctranslate2.Translator(nllb_path, device=device)
         nllb_tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
         
         # Load IndicTrans2 for Indian languages
-        # Note: We use the distributed (dist) versions for efficiency on small compute
         try:
-            indic_en_translator = ctranslate2.Translator(INDIC_EN_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+            logger.info("Downloading IndicTrans2-EN models...")
+            indic_en_path = snapshot_download(INDIC_EN_CT2_PATH)
+            indic_en_translator = ctranslate2.Translator(indic_en_path, device=device)
             indic_en_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-indic-en-dist-200M", trust_remote_code=True)
             
-            en_indic_translator = ctranslate2.Translator(EN_INDIC_CT2_PATH, device="cuda" if torch.cuda.is_available() else "cpu")
+            logger.info("Downloading EN-IndicTrans2 models...")
+            en_indic_path = snapshot_download(EN_INDIC_CT2_PATH)
+            en_indic_translator = ctranslate2.Translator(en_indic_path, device=device)
             en_indic_tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indictrans2-en-indic-dist-200M", trust_remote_code=True)
             logger.info("IndicTrans2 models loaded successfully")
         except Exception as indic_e:
@@ -560,8 +568,8 @@ async def translate_text(req: TranslationRequest):
     if len(NLLB_QUEUE) >= NLLB_MAX_QUEUE:
         raise HTTPException(status_code=429, detail="Server busy")
     
-    if NLLB_STATUS.startswith("error"):
-        raise HTTPException(status_code=500, detail=f"NLLB Model failed to load: {NLLB_STATUS}")
+    if TRANS_STATUS.startswith("error"):
+        raise HTTPException(status_code=500, detail=f"Translation Engine failed to load: {TRANS_STATUS}")
         
     job_id = str(uuid.uuid4())
     NLLB_JOBS[job_id] = {
