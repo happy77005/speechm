@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, Zap, Loader2, Globe, Sparkles } from 'lucide-react';
 import { useLiveTranscription } from '../hooks/useLiveTranscription';
+import { useWebSpeech } from '../hooks/useWebSpeech';
 
 const SUPPORTED_LANGS = [
   { code: 'en', label: 'English' },
@@ -12,8 +13,17 @@ const SUPPORTED_LANGS = [
 ];
 
 export function LiveSpeechTracker() {
-  const [sourceLang, setSourceLang] = useState('en');
-  const { isRecording, transcript, energy, startRecording, stopRecording, error } = useLiveTranscription();
+  const [sourceLang, setSourceLang] = useState('te');
+  const [engine, setEngine] = useState<'whisper' | 'webspeech'>('whisper');
+  
+  const whisper = useLiveTranscription();
+  const webSpeech = useWebSpeech(sourceLang === 'te' ? 'te-IN' : 'hi-IN');
+  
+  const isRecording = engine === 'whisper' ? whisper.isRecording : webSpeech.isRecording;
+  const transcript = engine === 'whisper' ? whisper.transcript : webSpeech.transcript;
+  const energy = engine === 'whisper' ? whisper.energy : 0;
+  const error = engine === 'whisper' ? whisper.error : webSpeech.error;
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom as text arrives
@@ -25,9 +35,13 @@ export function LiveSpeechTracker() {
 
   const handleToggle = async () => {
     if (isRecording) {
-      stopRecording();
+      engine === 'whisper' ? whisper.stopRecording() : webSpeech.stopRecording();
     } else {
-      await startRecording(sourceLang);
+      if (engine === 'whisper') {
+        await whisper.startRecording(sourceLang);
+      } else {
+        webSpeech.startRecording();
+      }
     }
   };
 
@@ -107,6 +121,27 @@ export function LiveSpeechTracker() {
             >
               {isRecording ? 'Stop Tracking' : 'Start Tracking'}
             </button>
+
+            {/* Engine Selector */}
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
+               <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Engine Selection</p>
+               <div className="flex bg-gray-200/50 dark:bg-gray-800 p-1 rounded-xl">
+                  <button 
+                      disabled={isRecording}
+                      onClick={() => setEngine('whisper')}
+                      className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${engine === 'whisper' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 opacity-50'}`}
+                  >
+                      Whisper
+                  </button>
+                  <button 
+                      disabled={isRecording}
+                      onClick={() => setEngine('webspeech')}
+                      className={`flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${engine === 'webspeech' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500 opacity-50'}`}
+                  >
+                      Web Speech
+                  </button>
+               </div>
+            </div>
           </div>
 
           {/* Footnote */}

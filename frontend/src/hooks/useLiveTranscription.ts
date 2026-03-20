@@ -6,6 +6,7 @@ export interface LiveTranscriptionResult {
     transcript: string;
     startRecording: (language: string) => Promise<void>;
     stopRecording: () => void;
+    clearTranscript: () => void;
     energy: number; // Real-time volume level (0-100)
     error: string | null;
 }
@@ -181,6 +182,10 @@ export function useLiveTranscription(): LiveTranscriptionResult {
         setEnergy(0);
     }, []);
 
+    const clearTranscript = useCallback(() => {
+        setTranscript('');
+    }, []);
+
     useEffect(() => {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
@@ -196,6 +201,7 @@ export function useLiveTranscription(): LiveTranscriptionResult {
         energy,
         startRecording,
         stopRecording,
+        clearTranscript,
         error
     };
 }

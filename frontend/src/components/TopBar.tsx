@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { History, Mic2, Sparkles, Settings, Moon, Sun, X } from 'lucide-react';
 
 interface TopBarProps {
-    currentView: 'dictation' | 'live' | 'history';
-    onViewChange: (view: 'dictation' | 'live' | 'history') => void;
+    currentView: 'dictation' | 'live' | 'live-translation' | 'history';
+    onViewChange: (view: 'dictation' | 'live' | 'live-translation' | 'history') => void;
     isDarkMode: boolean;
     toggleDarkMode: () => void;
 }
@@ -47,8 +47,18 @@ export function TopBar({ currentView, onViewChange, isDarkMode, toggleDarkMode }
                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
                             }`}
                     >
-                        <Sparkles size={14} />
+                        <Mic2 size={14} />
                         Live Speech
+                    </button>
+                    <button
+                        onClick={() => onViewChange('live-translation')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${currentView === 'live-translation'
+                            ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
+                            }`}
+                    >
+                        <Sparkles size={14} />
+                        Live Translation
                     </button>
                     <button
                         onClick={() => onViewChange('history')}

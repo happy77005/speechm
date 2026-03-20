@@ -3,9 +3,10 @@ import { TopBar } from './components/TopBar';
 import { DictationRecorder } from './components/DictationRecorder';
 import { SavedTranscriptions } from './components/SavedTranscriptions';
 import { LiveSpeechTracker } from './components/LiveSpeechTracker';
+import { LiveTranslationTracker } from './components/LiveTranslationTracker';
 
 export default function App() {
-  const [view, setView] = useState<'dictation' | 'live' | 'history'>('dictation');
+  const [view, setView] = useState<'dictation' | 'live' | 'live-translation' | 'history'>('dictation');
   const [refreshHistory, setRefreshHistory] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
@@ -38,6 +39,9 @@ export default function App() {
         </div>
         <div className={view === 'live' ? "" : "hidden"}>
           <LiveSpeechTracker />
+        </div>
+        <div className={view === 'live-translation' ? "" : "hidden"}>
+          <LiveTranslationTracker />
         </div>
         <div className={view === 'history' ? "" : "hidden"}>
           <SavedTranscriptions refreshTrigger={refreshHistory} />

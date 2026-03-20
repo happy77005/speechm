@@ -1,0 +1,46 @@
+instead of executing command all at once, execute them one by one.
+example of not to do: 
+PS G:\web-projects\translation\v2\unified-project> git add backend/app.py && git commit -m "fix: smart confidence-based transcription filters and GitHub sync" && git push github main
+At line:1 char:24
++ git add backend/app.py && git commit -m "fix: smart
+confidence-based  ...
++                        ~~
+The token '&&' is not a valid statement separator in this version.  
+At line:1 char:109
++ ... rt confidence-based transcription filters and GitHub sync"    
+&& git pus ...
++                                                                ~~
+The token '&&' is not a valid statement separator in this version.  
+    + CategoryInfo          : ParserError: (:) [], ParentContainsE  
+   rrorRecordException
+    + FullyQualifiedErrorId : InvalidEndOfLine
+instead do this way: 
+PS G:\web-projects\translation\v2\unified-project\backend> cd 'G:\web-projects\translation\v2\unified-project'
+PS G:\web-projects\translation\v2\unified-project> git add backend/app.py
+warning: in the working copy of 'backend/app.py', LF will be replaced by CRLF the next time Git touches it
+PS G:\web-projects\translation\v2\unified-project> cd 'G:\web-projects\translation\v2\unified-project'
+PS G:\web-projects\translation\v2\unified-project> git push github main
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 1.68 KiB | 1.68 MiB/s, done.
+Total 4 (delta 3), reused 1 (delta 0), pack-reused 0 (from 0)       
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To https://github.com/happy77005/speechm
+   ca42310..43a7a64  main -> main
+PS G:\web-projects\translation\v2\unified-project> cd 'G:\web-projects\translation\v2\unified-project\backend'
+PS G:\web-projects\translation\v2\unified-project\backend> git commit -m "fix: smart confidence-based transcription filters"
+Auto packing the repository for optimum performance.
+See "git help gc" for manual housekeeping.
+Enumerating objects: 3, done.
+Counting objects: 100% (3/3), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), done.
+Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Checking connectivity: 29702, done.
+warning: There are too many unreachable loose objects; run 'git prune' to remove them.
+[master 87001ac] fix: smart confidence-based transcription filters
+ 1 file changed, 16 insertions(+), 5 deletions(-)
+PS G:\web-projects\translation\v2\unified-project\backend> 
