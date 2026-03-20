@@ -22,6 +22,7 @@ RUN chown -R user:user /app
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
+ENV OMP_NUM_THREADS=4
 
 # Create fonts directory and download Noto Sans fonts
 RUN mkdir -p fonts && \

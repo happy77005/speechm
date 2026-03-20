@@ -6,6 +6,7 @@ colorTo: indigo
 sdk: docker
 pinned: false
 app_port: 7860
+OMP_NUM_THREADS: "4"
 ---
 
 # Transpeech Backend
