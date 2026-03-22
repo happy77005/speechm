@@ -304,10 +304,11 @@ threading.Thread(target=nllb_cleanup_loop, daemon=True).start()
 async def health_check():
     whisper_ready = whisper_model is not None
     trans_ready = TRANS_STATUS == "ready"
+    is_ready = whisper_ready and trans_ready
     
     return {
-        "status": "healthy",
-        "is_ready": whisper_ready and trans_ready,
+        "status": "alive" if is_ready else "loading",
+        "is_ready": is_ready,
         "whisper": {
             "model": WHISPER_MODEL_SIZE,
             "loaded": whisper_ready

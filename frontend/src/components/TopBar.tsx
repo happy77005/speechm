@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { History, Mic2, Sparkles, Settings, Moon, Sun, X } from 'lucide-react';
+import { useServerStatus } from '../hooks/useServerStatus';
 
 interface TopBarProps {
     currentView: 'dictation' | 'live' | 'live-translation' | 'history';
@@ -10,6 +11,7 @@ interface TopBarProps {
 
 export function TopBar({ currentView, onViewChange, isDarkMode, toggleDarkMode }: TopBarProps) {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const { status: serverStatus } = useServerStatus();
 
     return (
         <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm transition-colors duration-300">
@@ -23,7 +25,23 @@ export function TopBar({ currentView, onViewChange, isDarkMode, toggleDarkMode }
                         <Sparkles size={18} />
                     </div>
                     <div>
-                        <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">SpeechM</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">SpeechM</span>
+                            
+                            {/* Server Status LED */}
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                                    serverStatus === 'ready' ? 'bg-green-500' : 
+                                    serverStatus === 'warming-up' ? 'bg-amber-500' : 'bg-gray-400'
+                                }`} />
+                                <span className={`text-[8px] font-black uppercase tracking-widest ${
+                                    serverStatus === 'ready' ? 'text-green-600 dark:text-green-400' : 
+                                    serverStatus === 'warming-up' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500'
+                                }`}>
+                                    Server: {serverStatus === 'ready' ? 'Running' : serverStatus === 'warming-up' ? 'Sleeping...' : 'Offline'}
+                                </span>
+                            </div>
+                        </div>
                         <span className="text-[10px] block font-bold text-gray-400 dark:text-gray-500 -mt-1 uppercase tracking-tighter">v1.0 Pro</span>
                     </div>
                 </div>

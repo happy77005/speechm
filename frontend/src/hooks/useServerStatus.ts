@@ -16,34 +16,47 @@ export function useServerStatus(apiUrl: string = import.meta.env.VITE_API_URL ||
   const checkStatus = useCallback(async () => {
     try {
       const response = await fetch(`${apiUrl}/health`);
-      if (!response.ok) throw new Error('Server returned non-200 status');
+      if (!response.ok) throw new Error('Server offline');
       
       const data: HealthResponse = await response.json();
       setDetails(data);
 
-      if (data.is_ready) {
+      if (data.status === 'alive' || data.is_ready) {
         setStatus('ready');
+        return true; // Signal to stop polling
       } else {
         setStatus('warming-up');
+        return false;
       }
     } catch (error) {
       setStatus('offline');
       setDetails(null);
+      return false;
     }
   }, [apiUrl]);
 
   useEffect(() => {
-    // Initial check
-    checkStatus();
+    let intervalId: any = null;
 
-    // Set up polling
-    const intervalId = setInterval(() => {
-      // Poll faster if warming up, slower if ready or offline
-      checkStatus();
-    }, status === 'warming-up' ? 5000 : 15000);
+    const startPolling = async () => {
+      const isReady = await checkStatus();
+      if (isReady) return;
 
-    return () => clearInterval(intervalId);
-  }, [checkStatus, status]);
+      intervalId = setInterval(async () => {
+        const finished = await checkStatus();
+        if (finished) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+      }, 5000);
+    };
+
+    startPolling();
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [checkStatus]);
 
   return { status, details, refresh: checkStatus };
 }
